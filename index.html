@@ -18,5 +18,15 @@
         <br><br>
         <button type="submit">Armazenar Atividade</button>
     </form>
+    <hr>
+    <h3>Visualizar Repositório por Série:</h3>
+    <ul>
+        {% for s in series %}
+            <li><a href="{{ url_for('listar_arquivos', serie=s) }}">{{ s.replace('_', ' ').title() }}</a></li>
+        {% endfor %}
+    </ul>
+    <br>
+    <a href="{{ url_for('logout') }}">Sair do Sistema</a>
 </body>
+
 </html>
