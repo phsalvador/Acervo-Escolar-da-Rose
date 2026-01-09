@@ -71,3 +71,23 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+from flask import send_from_directory
+
+# ... (mantenha o código anterior)
+
+@app.route('/arquivos/<serie>')
+@login_required
+def listar_arquivos(serie):
+    if serie not in SERIES:
+        return "Série inválida", 404
+    
+    caminho_serie = os.path.join(app.config['UPLOAD_FOLDER'], serie)
+    arquivos = os.listdir(caminho_serie)
+    return render_template('arquivos.html', serie=serie, arquivos=arquivos)
+
+@app.route('/download/<serie>/<filename>')
+@login_required
+def baixar_arquivo(serie, filename):
+    diretorio = os.path.join(app.config['UPLOAD_FOLDER'], serie)
+    return send_from_directory(diretorio, filename)
