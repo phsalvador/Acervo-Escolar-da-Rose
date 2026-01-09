@@ -2,31 +2,73 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Repositório de Atividades</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repositório Escolar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { background-color: #0d6efd; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .btn-primary { border-radius: 8px; padding: 10px 20px; }
+        .list-group-item { border: none; margin-bottom: 5px; border-radius: 10px !important; transition: 0.3s; }
+        .list-group-item:hover { background-color: #e9ecef; }
+    </style>
 </head>
 <body>
-    <h2>Upload de Atividades</h2>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <label>Selecione a Série:</label>
-        <select name="serie">
-            {% for s in series %}
-                <option value="{{ s }}">{{ s.replace('_', ' ').title() }}</option>
-            {% endfor %}
-        </select>
-        <br><br>
-        <input type="file" name="file" accept=".pdf,.doc,.docx">
-        <br><br>
-        <button type="submit">Armazenar Atividade</button>
-    </form>
-    <hr>
-    <h3>Visualizar Repositório por Série:</h3>
-    <ul>
-        {% for s in series %}
-            <li><a href="{{ url_for('listar_arquivos', serie=s) }}">{{ s.replace('_', ' ').title() }}</a></li>
-        {% endfor %}
-    </ul>
-    <br>
-    <a href="{{ url_for('logout') }}">Sair do Sistema</a>
-</body>
 
+<nav class="navbar navbar-dark mb-4">
+    <div class="container">
+        <span class="navbar-brand mb-0 h1">📚 Portal do Professor</span>
+        <div class="d-flex">
+            <span class="text-white me-3 mt-1">Olá, {{ user }}</span>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Sair</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-5 mb-4">
+            <div class="card p-4">
+                <h4 class="mb-4 text-primary">Nova Atividade</h4>
+                <form action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Série/Turma</label>
+                        <select name="serie" class="form-select">
+                            {% for s in series %}
+                                <option value="{{ s }}">{{ s.replace('_', ' ').title() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Arquivo (PDF ou Word)</label>
+                        <input type="file" name="file" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">🚀 Enviar para o Repositório</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card p-4">
+                <h4 class="mb-4 text-primary">Pastas por Série</h4>
+                <div class="list-group">
+                    {% for s in series %}
+                        <a href="{{ url_for('listar_arquivos', serie=s) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <span>📁 {{ s.replace('_', ' ').title() }}</span>
+                            <span class="badge bg-primary rounded-pill">Acessar</span>
+                        </a>
+                    {% endfor %}
+                </div>
+                {% if user == 'admin' %}
+                <hr>
+                <a href="{{ url_for('registrar') }}" class="btn btn-outline-secondary btn-sm w-100">⚙️ Cadastrar Novo Professor</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
