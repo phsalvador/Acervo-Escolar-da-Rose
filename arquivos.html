@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Arquivos - {{ serie }}</title>
+</head>
+<body>
+    <h1>Atividades: {{ serie.replace('_', ' ').title() }}</h1>
+    <a href="{{ url_for('index') }}">⬅ Voltar para Upload</a>
+    <hr>
+    <ul>
+        {% for arquivo in arquivos %}
+            <li>
+                {{ arquivo }} 
+                <a href="{{ url_for('baixar_arquivo', serie=serie, filename=arquivo) }}"> [Baixar]</a>
+            </li>
+        {% else %}
+            <li>Nenhuma atividade postada nesta série.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
