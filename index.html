@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Repositório de Atividades</title>
+</head>
+<body>
+    <h2>Upload de Atividades</h2>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <label>Selecione a Série:</label>
+        <select name="serie">
+            {% for s in series %}
+                <option value="{{ s }}">{{ s.replace('_', ' ').title() }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <input type="file" name="file" accept=".pdf,.doc,.docx">
+        <br><br>
+        <button type="submit">Armazenar Atividade</button>
+    </form>
+</body>
+</html>
