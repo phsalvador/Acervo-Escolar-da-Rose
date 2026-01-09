@@ -1,47 +1,73 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'uma_chave_muito_segura_123' # Mude isso em produção
+app.config['UPLOAD_FOLDER'] = 'uploads'
 
-# Configurações
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+# Configuração do Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Mock de Banco de Dados de Professores (Substitua por um DB real futuramente)
+users = {'professor_joao': {'password': 'senha123'}, 'admin': {'password': 'admin'}}
+
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id not in users:
+        return None
+    return User(user_id)
+
 SERIES = ['1_ano', '2_ano', '3_ano', '4_ano', '5_ano']
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Criar pastas se não existirem
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Criar pastas iniciais
 for serie in SERIES:
-    path = os.path.join(UPLOAD_FOLDER, serie)
-    if not os.path.exists(path):
-        os.makedirs(path)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], serie), exist_ok=True)
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# --- ROTAS ---
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if username in users and users[username]['password'] == password:
+            user = User(username)
+            login_user(user)
+            return redirect(url_for('index'))
+        flash('Usuário ou senha inválidos!')
+    return render_template('login.html')
 
 @app.route('/')
+@login_required
 def index():
-    return render_template('index.html', series=SERIES)
+    return render_template('index.html', series=SERIES, user=current_user.id)
 
 @app.route('/upload', methods=['POST'])
+@login_required
 def upload_file():
-    if 'file' not in request.files:
-        return "Nenhum arquivo enviado"
+    file = request.files.get('file')
+    serie = request.form.get('serie')
     
-    file = request.files['file']
-    serie_selecionada = request.form.get('serie')
-    
-    if file and allowed_file(file.filename) and serie_selecionada in SERIES:
+    if file and serie in SERIES:
         filename = secure_filename(file.filename)
-        # Salva o arquivo na pasta da série correspondente
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], serie_selecionada, filename)
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], serie, filename)
         file.save(save_path)
-        return f"Arquivo '{filename}' armazenado com sucesso em {serie_selecionada}!"
+        return f"Professor {current_user.id}, arquivo salvo com sucesso em {serie}!"
     
-    return "Falha no upload. Verifique o formato do arquivo."
+    return "Erro no upload."
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
