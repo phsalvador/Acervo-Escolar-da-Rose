@@ -72,3 +72,13 @@ def registrar():
 if __name__ == '__main__':
     setup_db() # Cria o banco de dados na primeira execução
     app.run(debug=True)
+
+@app.route('/download/<serie>/<filename>')
+@login_required
+def baixar_arquivo(serie, filename):
+    # Verifica se o arquivo existe antes de tentar baixar
+    diretorio = os.path.join(app.config['UPLOAD_FOLDER'], serie)
+    if os.path.exists(os.path.join(diretorio, filename)):
+        return send_from_directory(diretorio, filename)
+    else:
+        return "Arquivo não encontrado", 404
