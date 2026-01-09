@@ -1,93 +1,74 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'uma_chave_muito_segura_123' # Mude isso em produção
+app.config['SECRET_KEY'] = 'escola_segura_2026'
+# O arquivo 'escola.db' será criado na mesma pasta do projeto
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///escola.db'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
-# Configuração do Login
-login_manager = LoginManager()
-login_manager.init_app(app)
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Mock de Banco de Dados de Professores (Substitua por um DB real futuramente)
-users = {'professor_joao': {'password': 'senha123'}, 'admin': {'password': 'admin'}}
+# --- MODELOS DO BANCO DE DADOS ---
 
-class User(UserMixin):
-    def __init__(self, id):
-        self.id = id
+class Professor(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+
+# Criar o banco e um professor inicial (Admin)
+def setup_db():
+    with app.app_context():
+        db.create_all()
+        if not Professor.query.filter_by(username='admin').first():
+            hashed_pw = generate_password_hash('admin123', method='pbkdf2:sha256')
+            admin = Professor(username='admin', password=hashed_pw)
+            db.session.add(admin)
+            db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
-    if user_id not in users:
-        return None
-    return User(user_id)
+    return Professor.query.get(int(user_id))
 
 SERIES = ['1_ano', '2_ano', '3_ano', '4_ano', '5_ano']
-
-# Criar pastas iniciais
-for serie in SERIES:
-    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], serie), exist_ok=True)
 
 # --- ROTAS ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if username in users and users[username]['password'] == password:
-            user = User(username)
+        user = Professor.query.filter_by(username=request.form.get('username')).first()
+        if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Usuário ou senha inválidos!')
+        flash('Login inválido!')
     return render_template('login.html')
 
-@app.route('/')
+@app.route('/registrar', methods=['GET', 'POST'])
 @login_required
-def index():
-    return render_template('index.html', series=SERIES, user=current_user.id)
+def registrar():
+    # Apenas o admin pode criar novos professores (opcional)
+    if request.method == 'POST':
+        novo_user = request.form.get('username')
+        nova_senha = generate_password_hash(request.form.get('password'), method='pbkdf2:sha256')
+        
+        if Professor.query.filter_by(username=novo_user).first():
+            flash('Usuário já existe!')
+        else:
+            p = Professor(username=novo_user, password=nova_senha)
+            db.session.add(p)
+            db.session.commit()
+            flash('Professor cadastrado!')
+    return render_template('registrar.html')
 
-@app.route('/upload', methods=['POST'])
-@login_required
-def upload_file():
-    file = request.files.get('file')
-    serie = request.form.get('serie')
-    
-    if file and serie in SERIES:
-        filename = secure_filename(file.filename)
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], serie, filename)
-        file.save(save_path)
-        return f"Professor {current_user.id}, arquivo salvo com sucesso em {serie}!"
-    
-    return "Erro no upload."
-
-@app.route('/logout')
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
+# (Mantenha as rotas de index, upload e download do passo anterior)
 
 if __name__ == '__main__':
+    setup_db() # Cria o banco de dados na primeira execução
     app.run(debug=True)
-
-from flask import send_from_directory
-
-# ... (mantenha o código anterior)
-
-@app.route('/arquivos/<serie>')
-@login_required
-def listar_arquivos(serie):
-    if serie not in SERIES:
-        return "Série inválida", 404
-    
-    caminho_serie = os.path.join(app.config['UPLOAD_FOLDER'], serie)
-    arquivos = os.listdir(caminho_serie)
-    return render_template('arquivos.html', serie=serie, arquivos=arquivos)
-
-@app.route('/download/<serie>/<filename>')
-@login_required
-def baixar_arquivo(serie, filename):
-    diretorio = os.path.join(app.config['UPLOAD_FOLDER'], serie)
-    return send_from_directory(diretorio, filename)
