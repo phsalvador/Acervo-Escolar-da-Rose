@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastrar Professor</title>
+</head>
+<body>
+    <h2>Cadastrar Novo Professor</h2>
+    <form method="post">
+        <input type="text" name="username" placeholder="Nome do Professor" required><br><br>
+        <input type="password" name="password" placeholder="Definir Senha" required><br><br>
+        <button type="submit">Cadastrar</button>
+    </form>
+    <br>
+    <a href="{{ url_for('index') }}">Voltar</a>
+</body>
+</html>
